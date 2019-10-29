@@ -1,0 +1,5 @@
+FROM datadog/agent:6.14.1
+
+COPY kubelet/datadog_checks/kubelet/prometheus.py /opt/datadog-agent/embedded/lib/python2.7/site-packages/datadog_checks/kubelet/prometheus.py
+
+RUN /opt/datadog-agent/embedded/bin/python -m compileall /opt/datadog-agent/embedded/lib/python2.7/site-packages/datadog_checks/kubelet/
