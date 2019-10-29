@@ -129,7 +129,7 @@ class CadvisorPrometheusScraperMixin(object):
             if labels['container_name'] == 'POD' or labels['container'] == 'POD':
                 return True
             # containerd does not report container_name="POD"
-            elif (labels['container_name'] == '' or labels['container'] == '') and labels.get('pod_name', False):
+            elif (labels['container_name'] == '' or labels['container'] == '') and (labels.get('pod_name', False) or labels.get('pod', False)):
                 return True
         # container_cpu_usage_seconds_total has an id label that is a cgroup path
         # eg: /kubepods/burstable/pod531c80d9-9fc4-11e7-ba8b-42010af002bb
@@ -163,6 +163,9 @@ class CadvisorPrometheusScraperMixin(object):
         namespace = CadvisorPrometheusScraperMixin._get_container_label(labels, "namespace")
         pod_name = CadvisorPrometheusScraperMixin._get_container_label(labels, "pod_name") or CadvisorPrometheusScraperMixin._get_container_label(labels, "pod")
         container_name = CadvisorPrometheusScraperMixin._get_container_label(labels, "container_name") or CadvisorPrometheusScraperMixin._get_container_label(labels, "container")
+        self.log.debug(
+            "_get_container_id: %s %s %s." % (namespace, pod_name, container_name)
+        )
         return self.pod_list_utils.get_cid_by_name_tuple((namespace, pod_name, container_name))
 
     def _get_entity_id_if_container_metric(self, labels):
@@ -232,7 +235,7 @@ class CadvisorPrometheusScraperMixin(object):
         :param labels: metric labels: iterable
         :return: list
         """
-        container_name = CadvisorPrometheusScraperMixin._get_container_label(labels, "container_name") or  CadvisorPrometheusScraperMixin._get_container_label(labels, "container")
+        container_name = CadvisorPrometheusScraperMixin._get_container_label(labels, "container_name") or CadvisorPrometheusScraperMixin._get_container_label(labels, "container")
         if container_name:
             return ["kube_container_name:%s" % container_name]
         return []
@@ -507,6 +510,11 @@ class CadvisorPrometheusScraperMixin(object):
         self._process_limit_metric('', metric, self.fs_usage_bytes, scraper_config, pct_m_name)
 
     def container_memory_usage_bytes(self, metric, scraper_config):
+
+        self.log.debug(
+            "Processing container_memory_usage_bytes %s" % (metric.name)
+        )
+
         metric_name = scraper_config['namespace'] + '.memory.usage'
         if metric.type not in METRIC_TYPES:
             self.log.error("Metric type %s unsupported for metric %s" % (metric.type, metric.name))
